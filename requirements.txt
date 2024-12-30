@@ -1,4 +1,8 @@
 pygame
+gymnasium==0.29.1
+rc-robosim
 rsoccer-gym
 pyvirtualdisplay>=3.0
 moviepy >= 1.0.0
+numpy==1.21.2
+protobuf==3.20

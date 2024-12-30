@@ -13,13 +13,12 @@ import random
 TIME_STEP_DIFF = 0.16 / 0.025
 
 class ExampleEnv(VSSBaseEnv):
-    def __init__(self, render_mode=None):
+    def __init__(self):
         super().__init__(
             field_type=0,
             n_robots_blue=3,
             n_robots_yellow=3,
             time_step=0.025,
-            render_mode=render_mode,
         )
 
         self.repeat_action = np.ceil(TIME_STEP_DIFF)
@@ -133,26 +132,31 @@ class ExampleEnv(VSSBaseEnv):
         robot = self.frame.robots_blue[0]
 
         target_point = self.actions_to_point(robot, actions)
+        # follow ball
         ball = Point(self.frame.ball.x, self.frame.ball.y)
         target_point = Point(ball.x, ball.y)
         v_wheel0, v_wheel1 = Navigation.goToPoint(robot, target_point)
         
         commands.append(Robot(yellow=False, id=0, v_wheel0=v_wheel0, v_wheel1=v_wheel1))
 
-        # Send random commands to the other robots
-        for i in range(1, self.n_robots_blue):
-            actions = self.ou_actions[i].sample()
-            v_wheel0, v_wheel1 = self.actions_to_v_wheels(actions)
-            commands.append(
-                Robot(yellow=False, id=i, v_wheel0=v_wheel0, v_wheel1=v_wheel1)
-            )
+        robot = self.frame.robots_blue[1]
+        v_wheel0, v_wheel1 = Navigation.goToPoint(robot, target_point)
+        commands.append(Robot(yellow=False, id=1, v_wheel0=v_wheel0, v_wheel1=v_wheel1))
 
-        for i in range(0, self.n_robots_yellow):
-            actions = self.ou_actions[self.n_robots_blue + i].sample()
-            v_wheel0, v_wheel1 = self.actions_to_v_wheels(actions)
-            commands.append(
-                Robot(yellow=True, id=i, v_wheel0=v_wheel0, v_wheel1=v_wheel1)
-            )
+        # Send random commands to the other robots
+        # for i in range(1, self.n_robots_blue):
+        #     actions = self.ou_actions[i].sample()
+        #     v_wheel0, v_wheel1 = self.actions_to_v_wheels(actions)
+        #     commands.append(
+        #         Robot(yellow=False, id=i, v_wheel0=v_wheel0, v_wheel1=v_wheel1)
+        #     )
+
+        # for i in range(0, self.n_robots_yellow):
+        #     actions = self.ou_actions[self.n_robots_blue + i].sample()
+        #     v_wheel0, v_wheel1 = self.actions_to_v_wheels(actions)
+        #     commands.append(
+        #         Robot(yellow=True, id=i, v_wheel0=v_wheel0, v_wheel1=v_wheel1)
+        #     )
 
         return commands
 
@@ -174,8 +178,7 @@ class ExampleEnv(VSSBaseEnv):
             observation = self._frame_to_observations()
             done = False
 
-            if self.render_mode == "human":
-                self.render()
+            self.render()
 
             if done:
                 break
@@ -183,11 +186,11 @@ class ExampleEnv(VSSBaseEnv):
         return observation, 0, done, False, {}
     
 
-    def _render(self):
+    def render(self):
         def pos_transform(pos_x, pos_y):
             return (
                 int(pos_x * self.field_renderer.scale + self.field_renderer.center_x),
                 int(pos_y * self.field_renderer.scale + self.field_renderer.center_y),
             )
 
-        super()._render()
+        super().render()

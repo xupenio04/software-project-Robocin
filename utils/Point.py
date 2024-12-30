@@ -32,3 +32,6 @@ class Point(NamedTuple):
     
     def angle(self):
         return math.atan2(self.y, self.x)
+    
+    def normalize(self):
+        return self / self.length()
