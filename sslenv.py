@@ -8,10 +8,10 @@ import pygame
 
 
 class SSLExampleEnv(SSLBaseEnv):
-    def __init__(self, render_mode=None):
-        field = 2 # SSL Division A Field
+    def __init__(self, render_mode="human"):
+        field = 0 # SSL Division A Field
         super().__init__(field_type=field, n_robots_blue=1,
-                         n_robots_yellow=0, time_step=0.025)
+                         n_robots_yellow=0, time_step=0.025, render_mode=render_mode)
         n_obs = 4 # Ball x,y and Robot x, y
         self.action_space = Box(low=-1, high=1, shape=(2, ))
         self.observation_space = Box(low=-self.field.length/2,\
@@ -61,25 +61,23 @@ class SSLExampleEnv(SSLBaseEnv):
 
         return pos_frame
     
-    def step(self, action):
-        super().render()
-        next_state, reward, terminated, _ = super().step(action)
-        return next_state, reward, terminated, False, {}
- 
-    def render(self, mode='human'):
-        # def pos_transform(pos_x, pos_y):
-        #     return (
-        #         int(pos_x * self.field_renderer.scale + self.field_renderer.center_x),
-        #         int(pos_y * self.field_renderer.scale + self.field_renderer.center_y),
-        #     )
+
+    def render(self):
+        def pos_transform(pos_x, pos_y):
+            return (
+                int(pos_x * self.field_renderer.scale + self.field_renderer.center_x),
+                int(pos_y * self.field_renderer.scale + self.field_renderer.center_y),
+            )
 
         super().render()
         self.draw_target(
-            self.view,
-            # pos_transform,
+            self.window_surface,
+            pos_transform,
             self.target,
             (255, 0, 0),
         )
 
-    def draw_target(self, screen, point, color):
-        pygame.draw.circle(screen, color, point, 100, 5)
+    def draw_target(self, screen, transformer, point, color):
+        x, y = transformer(point.x, point.y)
+        size = 0.09 * self.field_renderer.scale
+        pygame.draw.circle(screen, color, (x, y), size, 5)
