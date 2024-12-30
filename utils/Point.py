@@ -4,7 +4,6 @@ from typing import NamedTuple
 class Point(NamedTuple):
     x: float
     y: float
-    theta: float = 0
 
     def __add__(self, other):
         return Point(self.x + other.x, self.y + other.y)

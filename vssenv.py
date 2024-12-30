@@ -5,7 +5,7 @@ from rsoccer_gym.Utils.Utils import OrnsteinUhlenbeckAction
 from rsoccer_gym.Entities import Ball, Frame, Robot
 from rsoccer_gym.vss.vss_gym_base import VSSBaseEnv
 from typing import List
-from utils.Navigation import Navigation
+from utils.vss.Navigation import Navigation
 from utils.Point import Point
 from rsoccer_gym.Utils import KDTree
 import random
@@ -19,6 +19,7 @@ class ExampleEnv(VSSBaseEnv):
             n_robots_blue=3,
             n_robots_yellow=3,
             time_step=0.025,
+            render_mode="human"
         )
 
         self.repeat_action = np.ceil(TIME_STEP_DIFF)
@@ -178,19 +179,9 @@ class ExampleEnv(VSSBaseEnv):
             observation = self._frame_to_observations()
             done = False
 
-            self.render()
 
             if done:
                 break
 
         return observation, 0, done, False, {}
     
-
-    def render(self):
-        def pos_transform(pos_x, pos_y):
-            return (
-                int(pos_x * self.field_renderer.scale + self.field_renderer.center_x),
-                int(pos_y * self.field_renderer.scale + self.field_renderer.center_y),
-            )
-
-        super().render()

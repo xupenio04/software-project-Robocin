@@ -25,6 +25,8 @@ class SSLExampleEnv(SSLBaseEnv):
         
         self.target = Point(0,0)
         self.min_dist = 0.18
+        self.all_points = []
+        self.robot_path = []
 
     def _frame_to_observations(self):
         ball, robot = self.frame.ball, self.frame.robots_blue[0]
@@ -33,6 +35,10 @@ class SSLExampleEnv(SSLBaseEnv):
     def _get_commands(self, actions):
         robot_pos = Point(x=self.frame.robots_blue[0].x,
                           y=self.frame.robots_blue[0].y)
+
+        current_target = self.target
+        self.all_points.append(current_target)
+        self.robot_path.append(robot_pos)
 
         if robot_pos.dist_to(self.target) < self.min_dist:
             self.target = Point(x=self.x(), y=self.y())
@@ -100,12 +106,23 @@ class SSLExampleEnv(SSLBaseEnv):
             )
 
         super()._render()
+        
         self.draw_target(
             self.window_surface,
             pos_transform,
             self.target,
-            (255, 0, 0),
+            (255, 0, 255),
         )
+
+        if len(self.all_points) > 1:
+
+            my_path = [pos_transform(*p) for p in self.all_points[:-1]]
+            for point in my_path:
+                pygame.draw.circle(self.window_surface, (255, 0, 0), point, 3)
+        
+        if len(self.robot_path) > 1:
+            my_path = [pos_transform(*p) for p in self.robot_path]
+            pygame.draw.lines(self.window_surface, (255, 0, 0), False, my_path, 1)
 
     def draw_target(self, screen, transformer, point, color):
         x, y = transformer(point.x, point.y)
