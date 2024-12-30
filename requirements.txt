@@ -1,7 +1,4 @@
-torch==2.0.0
 pygame
 rsoccer-gym
-wandb>=0.16.0
 pyvirtualdisplay>=3.0
 moviepy >= 1.0.0
-pandas >= 2.1.4
