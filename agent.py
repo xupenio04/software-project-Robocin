@@ -4,11 +4,16 @@ from gymnasium.envs.registration import register
 
 
 register(
-    id="Software-Project",
-    entry_point="env:ExampleEnv"
+    id="VSS-Project",
+    entry_point="vssenv:ExampleEnv"
 )
 
-env = gym.make("Software-Project", render_mode="human")
+register(
+    id="SSL-Project",
+    entry_point="sslenv:SSLExampleEnv"
+)
+
+env = gym.make("SSL-Project")
 
 env.reset()
 # Run for 1 episode and print reward at the end
@@ -18,5 +23,5 @@ for i in range(1):
     while not (terminated or truncated):
         # Step using random actions
         action = env.action_space.sample()
-        next_state, reward, terminated, truncated, _ = env.step(action)
+        next_state, reward, terminated, _, _ = env.step(action)
     print(reward)
