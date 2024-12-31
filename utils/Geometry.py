@@ -45,3 +45,7 @@ class Geometry:
     def abs_smallest_angle_diff(angle_a: float, angle_b: float) -> float:
         """Returns the absolute smallest angle difference between two angles"""
         return abs(Geometry.smallest_angle_diff(angle_a, angle_b))
+    
+    @staticmethod
+    def from_polar(length: float, angle: float) -> Point:
+        return Point(math.cos(angle) * length, math.sin(angle) * length)

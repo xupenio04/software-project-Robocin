@@ -3,6 +3,7 @@ from gymnasium.spaces import Box
 from rsoccer_gym.Entities import Ball, Frame, Robot
 from rsoccer_gym.ssl.ssl_gym_base import SSLBaseEnv
 from rsoccer_gym.Utils import KDTree
+from utils.ssl.Navigation import Navigation
 from utils.Point import Point
 import random
 import pygame
@@ -13,7 +14,7 @@ class SSLExampleEnv(SSLBaseEnv):
         field = 1 # SSL Division A Field
         super().__init__(
             field_type=field, 
-            n_robots_blue=11,
+            n_robots_blue=1,
             n_robots_yellow=11, 
             time_step=0.025, 
             render_mode=render_mode)
@@ -33,8 +34,9 @@ class SSLExampleEnv(SSLBaseEnv):
         return np.array([ball.x, ball.y, robot.x, robot.y])
 
     def _get_commands(self, actions):
-        robot_pos = Point(x=self.frame.robots_blue[0].x,
-                          y=self.frame.robots_blue[0].y)
+        robot = self.frame.robots_blue[0]
+        robot_pos = Point(x=robot.x,
+                          y=robot.y)
 
         current_target = self.target
         self.all_points.append(current_target)
@@ -42,11 +44,11 @@ class SSLExampleEnv(SSLBaseEnv):
 
         if robot_pos.dist_to(self.target) < self.min_dist:
             self.target = Point(x=self.x(), y=self.y())
-
-        robot_to_target = (self.target - robot_pos).normalize()
+            
+        target_velocity, target_angle_velocity = Navigation.goToPoint(robot, self.target)
             
         return [Robot(yellow=False, id=0,
-                      v_x=robot_to_target.x, v_y=robot_to_target.y)]
+                      v_x=target_velocity.x, v_y=target_velocity.y, v_theta=target_angle_velocity)]
 
     def _calculate_reward_and_done(self):
         if self.frame.ball.x > self.field.length / 2 \
