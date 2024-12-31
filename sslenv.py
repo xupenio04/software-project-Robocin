@@ -42,6 +42,16 @@ class SSLExampleEnv(SSLBaseEnv):
         self.all_points.append(current_target)
         self.robot_path.append(robot_pos)
 
+        # Keep only the last M target points
+        max_target_points = 300
+        if len(self.all_points) > max_target_points:
+            self.all_points.pop(0)
+
+        # Visible path drawing control
+        max_path_length = 300
+        if len(self.robot_path) > max_path_length:
+            self.robot_path.pop(0)
+
         if robot_pos.dist_to(self.target) < self.min_dist:
             self.target = Point(x=self.x(), y=self.y())
             
@@ -117,7 +127,6 @@ class SSLExampleEnv(SSLBaseEnv):
         )
 
         if len(self.all_points) > 1:
-
             my_path = [pos_transform(*p) for p in self.all_points[:-1]]
             for point in my_path:
                 pygame.draw.circle(self.window_surface, (255, 0, 0), point, 3)
