@@ -5,16 +5,19 @@ from rsoccer_gym.ssl.ssl_gym_base import SSLBaseEnv
 from rsoccer_gym.Utils import KDTree
 from utils.ssl.Navigation import Navigation
 from utils.Point import Point
+from utils.ssl.small_field import SSLHRenderField
+from agent import ExampleAgent
+from random_agent import RandomAgent
 import random
 import pygame
 
 
 class SSLExampleEnv(SSLBaseEnv):
     def __init__(self, render_mode="human"):
-        field = 1 # SSL Division A Field
+        field = 2   # 1: SSL Div B    2: SSL Hardware challenge
         super().__init__(
             field_type=field, 
-            n_robots_blue=1,
+            n_robots_blue=11,
             n_robots_yellow=11, 
             time_step=0.025, 
             render_mode=render_mode)
@@ -28,7 +31,15 @@ class SSLExampleEnv(SSLBaseEnv):
         self.min_dist = 0.18
         self.all_points = []
         self.robot_path = []
+        self.agent = ExampleAgent(0, False)     ## Um único agente por enquanto
 
+        self.blue_agents = {i: RandomAgent(i, False) for i in range(1, 11)}
+        self.yellow_agents = {i: RandomAgent(i, True) for i in range(0, 11)}
+
+        if field == 2:
+            self.field_renderer = SSLHRenderField()
+            self.window_size = self.field_renderer.window_size
+        
     def _frame_to_observations(self):
         ball, robot = self.frame.ball, self.frame.robots_blue[0]
         return np.array([ball.x, ball.y, robot.x, robot.y])
@@ -55,10 +66,31 @@ class SSLExampleEnv(SSLBaseEnv):
         if robot_pos.dist_to(self.target) < self.min_dist:
             self.target = Point(x=self.x(), y=self.y())
             
-        target_velocity, target_angle_velocity = Navigation.goToPoint(robot, self.target)
-            
-        return [Robot(yellow=False, id=0,
-                      v_x=target_velocity.x, v_y=target_velocity.y, v_theta=target_angle_velocity)]
+        opponents = {id: robot for id, robot in self.frame.robots_yellow.items()}
+        for i in range(0, self.n_robots_blue):
+            if (i != robot.id):
+                opponents[i + self.n_robots_yellow] = self.frame.robots_blue[i]
+
+        action = self.agent.step(robot, opponents, self.target)
+
+        others_actions = []
+        for i in range(1, self.n_robots_blue):
+            if random.uniform(0.0, 1.0) < 0.003:
+                random_target = Point(x=self.x(), y=self.y())  
+            else:
+                random_target = None
+
+            others_actions.append(self.blue_agents[i].step(self.frame.robots_blue[i], opponents, random_target))
+
+        for i in range(0, self.n_robots_yellow):
+            if random.uniform(0.0, 1.0) < 0.003:
+                random_target = Point(x=self.x(), y=self.y())
+            else:
+                random_target = None
+
+            others_actions.append(self.yellow_agents[i].step(self.frame.robots_yellow[i], opponents, random_target))
+
+        return [action]  + others_actions
 
     def _calculate_reward_and_done(self):
         if self.frame.ball.x > self.field.length / 2 \
