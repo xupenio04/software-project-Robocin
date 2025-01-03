@@ -3,8 +3,8 @@ from gymnasium.spaces import Box
 from rsoccer_gym.Entities import Ball, Frame, Robot
 from rsoccer_gym.ssl.ssl_gym_base import SSLBaseEnv
 from rsoccer_gym.Utils import KDTree
-from utils.ssl.Navigation import Navigation
 from utils.Point import Point
+from utils.FixedQueue import FixedQueue
 from utils.ssl.small_field import SSLHRenderField
 from agent import ExampleAgent
 from random_agent import RandomAgent
@@ -27,14 +27,21 @@ class SSLExampleEnv(SSLBaseEnv):
         self.observation_space = Box(low=-self.field.length/2,\
             high=self.field.length/2,shape=(n_obs, ))
         
-        self.target = Point(0,0)
+        self.targets = []
         self.min_dist = 0.18
-        self.all_points = []
-        self.robot_path = []
-        self.agent = ExampleAgent(0, False)     ## Um único agente por enquanto
+        self.all_points = FixedQueue(5)
+        self.robots_paths = [FixedQueue(40) for i in range(11)]
 
+        self.max_rounds = 10
+        self.rounds = self.max_rounds - 1   ## because of the first round
+        self.max_targets = 7
+        self.targets_per_round = 1
+
+        self.myAgents = {0: ExampleAgent(0, False)}
         self.blue_agents = {i: RandomAgent(i, False) for i in range(1, 11)}
         self.yellow_agents = {i: RandomAgent(i, True) for i in range(0, 11)}
+
+        self.gen_target_prob = 0.003
 
         if field == 2:
             self.field_renderer = SSLHRenderField()
@@ -45,52 +52,66 @@ class SSLExampleEnv(SSLBaseEnv):
         return np.array([ball.x, ball.y, robot.x, robot.y])
 
     def _get_commands(self, actions):
-        robot = self.frame.robots_blue[0]
-        robot_pos = Point(x=robot.x,
-                          y=robot.y)
-
-        current_target = self.target
-        self.all_points.append(current_target)
-        self.robot_path.append(robot_pos)
-
         # Keep only the last M target points
-        max_target_points = 300
-        if len(self.all_points) > max_target_points:
-            self.all_points.pop(0)
-
+        for target in self.targets:
+            if target not in self.all_points:
+                self.all_points.push(target)
+                
         # Visible path drawing control
-        max_path_length = 300
-        if len(self.robot_path) > max_path_length:
-            self.robot_path.pop(0)
+        for i in self.myAgents:
+            self.robots_paths[i].push(Point(self.frame.robots_blue[i].x, self.frame.robots_blue[i].y))
 
-        if robot_pos.dist_to(self.target) < self.min_dist:
-            self.target = Point(x=self.x(), y=self.y())
-            
-        opponents = {id: robot for id, robot in self.frame.robots_yellow.items()}
-        for i in range(0, self.n_robots_blue):
-            if (i != robot.id):
-                opponents[i + self.n_robots_yellow] = self.frame.robots_blue[i]
+        # Check if the robot is close to the target
+        for j in range(len(self.targets) - 1, -1, -1):
+            for i in self.myAgents:
+                if Point(self.frame.robots_blue[i].x, self.frame.robots_blue[i].y).dist_to(self.targets[j]) < self.min_dist:
+                    self.targets.pop(j)
+                    break
+        
+        # Finish the phase and increase the number of targets for the next phase
+        if self.rounds == 0:
+            self.rounds = self.max_rounds
+            if self.targets_per_round < self.max_targets:
+                self.targets_per_round += 1
+                self.blue_agents.pop(len(self.myAgents))
+                self.myAgents[len(self.myAgents)] = ExampleAgent(len(self.myAgents), False)
 
-        action = self.agent.step(robot, opponents, self.target)
+        # Generate new targets
+        if len(self.targets) == 0:
+            for i in range(self.targets_per_round):
+                self.targets.append(Point(self.x(), self.y()))
+            self.rounds -= 1
+
+        
+        obstacles = {id: robot for id, robot in self.frame.robots_blue.items()}
+        for i in range(0, self.n_robots_yellow):
+            obstacles[i + self.n_robots_blue] = self.frame.robots_yellow[i]
+        teammates = {id: self.frame.robots_blue[id] for id in self.myAgents.keys()}
+
+        remove_self = lambda robots, selfId: {id: robot for id, robot in robots.items() if id != selfId}
+
+        myActions = []
+        for i in self.myAgents.keys():
+            action = self.myAgents[i].step(self.frame.robots_blue[i], remove_self(obstacles, i), teammates, self.targets)
+            myActions.append(action)
 
         others_actions = []
-        for i in range(1, self.n_robots_blue):
-            if random.uniform(0.0, 1.0) < 0.003:
-                random_target = Point(x=self.x(), y=self.y())  
-            else:
-                random_target = None
+        for i in self.blue_agents.keys():
+            random_target = []
+            if random.uniform(0.0, 1.0) < self.gen_target_prob:
+                random_target.append(Point(x=self.x(), y=self.y()))
+                
+            
+            others_actions.append(self.blue_agents[i].step(self.frame.robots_blue[i], obstacles, dict(), random_target, True))
 
-            others_actions.append(self.blue_agents[i].step(self.frame.robots_blue[i], opponents, random_target))
+        for i in self.yellow_agents.keys():
+            random_target = []
+            if random.uniform(0.0, 1.0) < self.gen_target_prob:
+                random_target.append(Point(x=self.x(), y=self.y()))
 
-        for i in range(0, self.n_robots_yellow):
-            if random.uniform(0.0, 1.0) < 0.003:
-                random_target = Point(x=self.x(), y=self.y())
-            else:
-                random_target = None
+            others_actions.append(self.yellow_agents[i].step(self.frame.robots_yellow[i], obstacles, dict(), random_target, True))
 
-            others_actions.append(self.yellow_agents[i].step(self.frame.robots_yellow[i], opponents, random_target))
-
-        return [action]  + others_actions
+        return myActions + others_actions
 
     def _calculate_reward_and_done(self):
         if self.frame.ball.x > self.field.length / 2 \
@@ -117,7 +138,7 @@ class SSLExampleEnv(SSLBaseEnv):
 
         pos_frame.robots_blue[0] = Robot(x=self.x(), y=self.y(), theta=theta())
 
-        self.target = Point(x=self.x(), y=self.y())
+        self.targets = [Point(x=self.x(), y=self.y())]
 
         places = KDTree()
         places.insert((pos_frame.ball.x, pos_frame.ball.y))
@@ -151,21 +172,23 @@ class SSLExampleEnv(SSLBaseEnv):
 
         super()._render()
         
-        self.draw_target(
-            self.window_surface,
-            pos_transform,
-            self.target,
-            (255, 0, 255),
-        )
+        for target in self.targets:
+            self.draw_target(
+                self.window_surface,
+                pos_transform,
+                target,
+                (255, 0, 255),
+            )
 
-        if len(self.all_points) > 1:
-            my_path = [pos_transform(*p) for p in self.all_points[:-1]]
+        if len(self.all_points) > 0:
+            my_path = [pos_transform(*p) for p in self.all_points]
             for point in my_path:
                 pygame.draw.circle(self.window_surface, (255, 0, 0), point, 3)
         
-        if len(self.robot_path) > 1:
-            my_path = [pos_transform(*p) for p in self.robot_path]
-            pygame.draw.lines(self.window_surface, (255, 0, 0), False, my_path, 1)
+        for i in range(len(self.robots_paths)):
+            if len(self.robots_paths[i]) > 1:
+                my_path = [pos_transform(*p) for p in self.robots_paths[i]]
+                pygame.draw.lines(self.window_surface, (255, 0, 0), False, my_path, 1)
 
     def draw_target(self, screen, transformer, point, color):
         x, y = transformer(point.x, point.y)
