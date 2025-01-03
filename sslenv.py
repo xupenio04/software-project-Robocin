@@ -10,18 +10,20 @@ from agent import ExampleAgent
 from random_agent import RandomAgent
 import random
 import pygame
-
+from utils.CLI import Difficulty
 
 class SSLExampleEnv(SSLBaseEnv):
-    def __init__(self, render_mode="human"):
-        field = 2   # 1: SSL Div B    2: SSL Hardware challenge
+    def __init__(self, render_mode="human", difficulty=Difficulty.EASY):
+        field = 2   # 1: SSL Div B    2: SSL Software challenge
         super().__init__(
             field_type=field, 
             n_robots_blue=11,
             n_robots_yellow=11, 
-            time_step=0.025, 
+            time_step=0.025,
             render_mode=render_mode)
         
+        self.DYNAMIC_OBSTACLES, self.max_targets, self.max_rounds = Difficulty.parse(difficulty)
+
         n_obs = 4 # Ball x,y and Robot x, y
         self.action_space = Box(low=-1, high=1, shape=(2, ))
         self.observation_space = Box(low=-self.field.length/2,\
@@ -32,9 +34,7 @@ class SSLExampleEnv(SSLBaseEnv):
         self.all_points = FixedQueue(5)
         self.robots_paths = [FixedQueue(40) for i in range(11)]
 
-        self.max_rounds = 10
         self.rounds = self.max_rounds - 1   ## because of the first round
-        self.max_targets = 7
         self.targets_per_round = 1
 
         self.myAgents = {0: ExampleAgent(0, False)}
@@ -96,30 +96,25 @@ class SSLExampleEnv(SSLBaseEnv):
             myActions.append(action)
 
         others_actions = []
-        for i in self.blue_agents.keys():
-            random_target = []
-            if random.uniform(0.0, 1.0) < self.gen_target_prob:
-                random_target.append(Point(x=self.x(), y=self.y()))
-                
-            
-            others_actions.append(self.blue_agents[i].step(self.frame.robots_blue[i], obstacles, dict(), random_target, True))
+        if self.DYNAMIC_OBSTACLES:
+            for i in self.blue_agents.keys():
+                random_target = []
+                if random.uniform(0.0, 1.0) < self.gen_target_prob:
+                    random_target.append(Point(x=self.x(), y=self.y()))
+                    
+                others_actions.append(self.blue_agents[i].step(self.frame.robots_blue[i], obstacles, dict(), random_target, True))
 
-        for i in self.yellow_agents.keys():
-            random_target = []
-            if random.uniform(0.0, 1.0) < self.gen_target_prob:
-                random_target.append(Point(x=self.x(), y=self.y()))
+            for i in self.yellow_agents.keys():
+                random_target = []
+                if random.uniform(0.0, 1.0) < self.gen_target_prob:
+                    random_target.append(Point(x=self.x(), y=self.y()))
 
-            others_actions.append(self.yellow_agents[i].step(self.frame.robots_yellow[i], obstacles, dict(), random_target, True))
+                others_actions.append(self.yellow_agents[i].step(self.frame.robots_yellow[i], obstacles, dict(), random_target, True))
 
         return myActions + others_actions
 
     def _calculate_reward_and_done(self):
-        if self.frame.ball.x > self.field.length / 2 \
-            and abs(self.frame.ball.y) < self.field.goal_width / 2:
-            reward, done = 1, True
-        else:
-            reward, done = 0, False
-        return reward, done
+        return 0, False
     
     def x(self):
         return random.uniform(-self.field.length/2 + self.min_dist, self.field.length/2 - self.min_dist)

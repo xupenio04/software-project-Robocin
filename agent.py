@@ -1,8 +1,5 @@
-from rsoccer_gym.Entities import Robot
 from utils.ssl.Navigation import Navigation
-from utils.Point import Point
 from utils.ssl.base_agent import BaseAgent
-from itertools import permutations
 
 class ExampleAgent(BaseAgent):
     def __init__(self, id=0, yellow=False):

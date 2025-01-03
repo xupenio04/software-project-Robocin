@@ -1,7 +1,9 @@
 import gymnasium as gym
 import rsoccer_gym
 from gymnasium.envs.registration import register
+from utils.CLI import cli, Difficulty
 
+args = cli()
 
 register(
     id="VSS-Project",
@@ -13,7 +15,7 @@ register(
     entry_point="sslenv:SSLExampleEnv"
 )
 
-env = gym.make("SSL-Project")
+env = gym.make("SSL-Project", difficulty=Difficulty(args.difficulty))
 
 env.reset()
 # Run for 1 episode and print reward at the end
@@ -24,4 +26,3 @@ for i in range(1):
         # Step using random actions
         action = env.action_space.sample()
         next_state, reward, terminated, _, _ = env.step(action)
-    print(reward)
