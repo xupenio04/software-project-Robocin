@@ -12,4 +12,4 @@ class SSLHRenderField(SSLRenderField):
     goal_width = 0.7
     goal_depth = 0.18
     corner_arc_r = 0.01
-    _scale = 100
+    _scale = 160
