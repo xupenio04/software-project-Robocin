@@ -15,9 +15,9 @@ class Difficulty(Enum):
         if difficulty == Difficulty.MEDIUM:
             return True, 1, 10
         if difficulty == Difficulty.HARD:
-            return True, 4, 1
+            return True, 4, 2
         if difficulty == Difficulty.VERY_HARD:
-            return True, 6, 1
+            return True, 6, 2
 
 
 def cli():
