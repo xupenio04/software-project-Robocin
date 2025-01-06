@@ -31,13 +31,13 @@ class SSLExampleEnv(SSLBaseEnv):
         
         self.targets = []
         self.min_dist = 0.18
-        self.all_points = FixedQueue(5)
+        self.all_points = FixedQueue(max(4, self.max_targets))
         self.robots_paths = [FixedQueue(40) for i in range(11)]
 
-        self.rounds = self.max_rounds - 1   ## because of the first round
+        self.rounds = self.max_rounds  ## because of the first round
         self.targets_per_round = 1
 
-        self.myAgents = {0: ExampleAgent(0, False)}
+        self.my_agents = {0: ExampleAgent(0, False)}
         self.blue_agents = {i: RandomAgent(i, False) for i in range(1, 11)}
         self.yellow_agents = {i: RandomAgent(i, True) for i in range(0, 11)}
 
@@ -58,41 +58,43 @@ class SSLExampleEnv(SSLBaseEnv):
                 self.all_points.push(target)
                 
         # Visible path drawing control
-        for i in self.myAgents:
+        for i in self.my_agents:
             self.robots_paths[i].push(Point(self.frame.robots_blue[i].x, self.frame.robots_blue[i].y))
 
         # Check if the robot is close to the target
         for j in range(len(self.targets) - 1, -1, -1):
-            for i in self.myAgents:
+            for i in self.my_agents:
                 if Point(self.frame.robots_blue[i].x, self.frame.robots_blue[i].y).dist_to(self.targets[j]) < self.min_dist:
                     self.targets.pop(j)
                     break
         
+        # Check if there are no more targets
+        if len(self.targets) == 0:
+            self.rounds -= 1
+
         # Finish the phase and increase the number of targets for the next phase
         if self.rounds == 0:
             self.rounds = self.max_rounds
             if self.targets_per_round < self.max_targets:
                 self.targets_per_round += 1
-                self.blue_agents.pop(len(self.myAgents))
-                self.myAgents[len(self.myAgents)] = ExampleAgent(len(self.myAgents), False)
+                self.blue_agents.pop(len(self.my_agents))
+                self.my_agents[len(self.my_agents)] = ExampleAgent(len(self.my_agents), False)
 
         # Generate new targets
         if len(self.targets) == 0:
             for i in range(self.targets_per_round):
                 self.targets.append(Point(self.x(), self.y()))
-            self.rounds -= 1
-
         
         obstacles = {id: robot for id, robot in self.frame.robots_blue.items()}
         for i in range(0, self.n_robots_yellow):
             obstacles[i + self.n_robots_blue] = self.frame.robots_yellow[i]
-        teammates = {id: self.frame.robots_blue[id] for id in self.myAgents.keys()}
+        teammates = {id: self.frame.robots_blue[id] for id in self.my_agents.keys()}
 
         remove_self = lambda robots, selfId: {id: robot for id, robot in robots.items() if id != selfId}
 
         myActions = []
-        for i in self.myAgents.keys():
-            action = self.myAgents[i].step(self.frame.robots_blue[i], remove_self(obstacles, i), teammates, self.targets)
+        for i in self.my_agents.keys():
+            action = self.my_agents[i].step(self.frame.robots_blue[i], remove_self(obstacles, i), teammates, self.targets)
             myActions.append(action)
 
         others_actions = []
