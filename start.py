@@ -2,6 +2,7 @@ import gymnasium as gym
 import rsoccer_gym
 from gymnasium.envs.registration import register
 from utils.CLI import cli, Difficulty
+import pygame
 
 args = cli()
 
@@ -18,7 +19,7 @@ register(
 env = gym.make("SSL-Project", difficulty=Difficulty(args.difficulty))
 
 env.reset()
-# Run for 1 episode and print reward at the end
+
 for i in range(1):
     terminated = False
     truncated = False
@@ -26,3 +27,10 @@ for i in range(1):
         # Step using random actions
         action = env.action_space.sample()
         next_state, reward, terminated, _, _ = env.step(action)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminated = True
+                break
+            
+    env.close()
