@@ -27,13 +27,6 @@ class Navigation:
     return radians * (180.0 / math.pi)
   
   @staticmethod
-  def convert_angle(angle):
-    corrected_angle = (360 - angle)
-    if corrected_angle > 180:
-      return corrected_angle - 360
-    return corrected_angle
-  
-  @staticmethod
   def global_to_local_velocity(vx, vy, theta):
     vx_local = vx * math.cos(theta) + vy * math.sin(theta)
     vy_local = -vx * math.sin(theta) + vy * math.cos(theta)
@@ -50,7 +43,7 @@ class Navigation:
   def goToPoint(robot: Robot, target: Point):
     target = Point(target.x * M_TO_MM, target.y * M_TO_MM)
     robot_position = Point(robot.x * M_TO_MM, robot.y * M_TO_MM)
-    robot_angle = Navigation.degrees_to_radians(Navigation.convert_angle(robot.theta))
+    robot_angle = Navigation.degrees_to_radians(Geometry.normalize_angle(robot.theta, 0, 180))
 
     max_velocity = MAX_VELOCITY
     distance_to_target = robot_position.dist_to(target)
@@ -64,17 +57,15 @@ class Navigation:
       max_velocity = max_velocity * Navigation.map_value(distance_to_target, 0.0, min_proportional_distance, proportional_velocity_factor, 1.0)
 
     target_angle = (target - robot_position).angle()
-    if distance_to_target > ADJUST_ANGLE_MIN_DIST:
-      theta = (target - robot_position).angle()
-      d_theta = Geometry.smallest_angle_diff(robot_angle, target_angle)
+    d_theta = Geometry.smallest_angle_diff(target_angle, robot_angle)
 
+    if distance_to_target > ADJUST_ANGLE_MIN_DIST:
       v_angle = Geometry.abs_smallest_angle_diff(math.pi - ANGLE_EPSILON, d_theta)
 
       v_proportional = v_angle * (max_velocity / (math.pi - ANGLE_EPSILON))
-      global_final_velocity = Geometry.from_polar(v_proportional, theta)
+      global_final_velocity = Geometry.from_polar(v_proportional, target_angle)
       target_velocity = Navigation.global_to_local_velocity(global_final_velocity.x, global_final_velocity.y, robot_angle)
 
       return target_velocity, -kp * d_theta
     else:
-      d_theta = Geometry.smallest_angle_diff(robot_angle, target_angle)
       return Point(0.0, 0.0), -kp * d_theta
