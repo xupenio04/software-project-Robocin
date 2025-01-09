@@ -38,6 +38,19 @@ class RRT:
         proj_x = x1 + t * (x2 - x1)
         proj_y = y1 + t * (y2 - y1)
         return np.linalg.norm([px - proj_x, py - proj_y])
+    
+    def nearest(self, point):
+        return min(self.tree.keys(), key=lambda p: self.distance(p, point))
+    
+    def steer(self, from_point, to_point):
+        dist = self.distance(from_point, to_point)
+        if dist < self.step_size:
+            return to_point
+        theta = np.arctan2(to_point.y - from_point.y, to_point.x - from_point.x)
+        return Point(from_point.x + self.step_size * np.cos(theta), from_point.y + self.step_size * np.sin(theta))
+
+    
+    
 
     
 
