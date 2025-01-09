@@ -37,3 +37,39 @@ class RRT:
     
     def nearest(self, point):
         return min(self.tree.keys(), key=lambda p: self.distance(p, point))
+    
+    def steer(self, from_point, to_point):
+        dist = self.distance(from_point, to_point)
+        if dist < self.step_size:
+            return to_point
+        theta = np.arctan2(to_point.y - from_point.y, to_point.x - from_point.x)
+        return Point(from_point.x + self.step_size * np.cos(theta), from_point.y + self.step_size * np.sin(theta))
+
+    def plan(self):
+        for _ in range(self.max_iter):
+
+            rand_point = Point(
+                random.uniform(self.x_bounds[0], self.x_bounds[1]),
+                random.uniform(self.y_bounds[0], self.y_bounds[1])
+            )
+
+            nearest_point = self.nearest(rand_point)
+
+            new_point = self.steer(nearest_point, rand_point)
+
+            if self.is_collision_free(nearest_point, new_point):
+                self.tree[new_point] = nearest_point
+
+                if self.distance(new_point, self.goal) < self.step_size:
+                    self.tree[self.goal] = new_point
+                    return self.reconstruct_path()
+        return None
+
+    def reconstruct_path(self):
+        path = []
+        current = self.goal
+        while current is not None:
+            path.append(current)
+            current = self.tree.get(current)  
+        path.reverse()
+        return path

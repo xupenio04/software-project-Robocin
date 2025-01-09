@@ -11,6 +11,7 @@ from random_agent import RandomAgent
 import random
 import pygame
 from utils.CLI import Difficulty
+from utils.ssl.RRT import RRT
 
 class SSLExampleEnv(SSLBaseEnv):
     def __init__(self, render_mode="human", difficulty=Difficulty.EASY):
