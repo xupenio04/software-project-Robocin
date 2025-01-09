@@ -3,6 +3,7 @@ from utils.ssl.base_agent import BaseAgent
 from utils.ssl.RRT import RRT
 from rsoccer_gym.Render import SSLRenderField
 import numpy as np
+from utils.Point import Point
 
     
 
@@ -20,6 +21,15 @@ class ExampleAgent(BaseAgent):
 
         x_bounds = (-SSLRenderField.length / 2, SSLRenderField.length / 2)
         y_bounds = (-SSLRenderField.width / 2, SSLRenderField.width / 2)
+
+        obstacles = [
+            Point(rob.x, rob.y)
+            for rob in self.opponents.values()
+        ] + [
+            Point(rob.x, rob.y)
+            for rob_id, rob in self.teammates.items()
+            if rob_id != self.id
+        ]
 
         if self.path is None or len(self.path) == 0 or self.path[-1] != goal:
             rrt = RRT(
