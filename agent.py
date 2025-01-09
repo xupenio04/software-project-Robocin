@@ -46,9 +46,22 @@ class ExampleAgent(BaseAgent):
 
 
 
-        target_velocity, target_angle_velocity = Navigation.goToPoint(self.robot, self.targets[0])
-        self.set_vel(target_velocity)
-        self.set_angle_vel(target_angle_velocity)
+        if self.path and len(self.path) > 1:
+            # Próximo ponto no caminho
+            next_point = self.path[1]
+            # Obter velocidades necessárias para atingir o próximo ponto
+            target_velocity, target_angle_velocity = Navigation.goToPoint(self.robot, next_point)
+            self.set_vel(target_velocity)
+            self.set_angle_vel(target_angle_velocity)
+
+            # Remover o ponto do caminho se já atingido
+            if np.linalg.norm([current_pos.x - next_point.x, current_pos.y - next_point.y]) < 0.1:
+                self.path.pop(0)
+        else:
+            # Caso o caminho esteja vazio ou o objetivo seja alcançado
+            self.set_vel(Point(0, 0))
+            self.set_angle_vel(0)
+
 
         return
 
