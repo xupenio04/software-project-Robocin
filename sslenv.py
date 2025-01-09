@@ -36,6 +36,7 @@ class SSLExampleEnv(SSLBaseEnv):
 
         self.rounds = self.max_rounds  ## because of the first round
         self.targets_per_round = 1
+    
 
         self.my_agents = {0: ExampleAgent(0, False)}
         self.blue_agents = {i: RandomAgent(i, False) for i in range(1, 11)}
