@@ -10,6 +10,7 @@ from utils.Point import Point
 class ExampleAgent(BaseAgent):
     def __init__(self, id=0, yellow=False):
         super().__init__(id, yellow)
+        self.path =[]
 
     def decision(self):
         if len(self.targets) == 0:
@@ -39,8 +40,8 @@ class ExampleAgent(BaseAgent):
                 x_bounds=x_bounds,
                 y_bounds=y_bounds,
                 step_size=0.1,
-                max_iter=1000,
-                min_dist=0.18,
+                max_iter=300,
+                min_dist=0.175,
             )
             self.path = rrt.plan() or [] 
 
