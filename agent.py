@@ -10,7 +10,7 @@ from utils.Point import Point
 class ExampleAgent(BaseAgent):
     def __init__(self, id=0, yellow=False):
         super().__init__(id, yellow)
-        self.path =[]
+        self.path = []
 
     def predict_obstacle_positions(self, obstacles, prediction_time=0.1):
         """
@@ -30,47 +30,42 @@ class ExampleAgent(BaseAgent):
             return
 
         current_pos = self.pos
-
         goal = self.targets[0]
 
         x_bounds = (-SSLRenderField.length / 2, SSLRenderField.length / 2)
         y_bounds = (-SSLRenderField.width / 2, SSLRenderField.width / 2)
 
-        obstacles = [
-            Point(rob.x, rob.y)
-            for rob in self.opponents.values()
-        ] + [
-            Point(rob.x, rob.y)
-            for rob_id, rob in self.teammates.items()
-            if rob_id != self.id
-        ]
+        # Atualizar obstáculos e prever posições futuras
+        obstacles = {
+            rob_id: rob for rob_id, rob in self.opponents.items()
+        } | {
+            rob_id: rob for rob_id, rob in self.teammates.items() if rob_id != self.id
+        }
 
         predicted_obstacles = self.predict_obstacle_positions(obstacles)
 
-        if self.path is None or len(self.path) == 0 or self.path[-1] != goal:
+        # Replanejamento se o caminho não for válido ou não existir
+        if not self.path or len(self.path) == 0 or self.path[-1] != goal:
             rrt = RRT(
                 start=current_pos,
                 goal=goal,
-                obstacles=obstacles,
+                obstacles=predicted_obstacles,
                 x_bounds=x_bounds,
                 y_bounds=y_bounds,
                 step_size=0.15,
                 max_iter=300,
                 min_dist=0.175,
             )
-            self.path = rrt.plan() or [] 
+            self.path = rrt.plan() or []  # Recalcular o caminho com os obstáculos previstos
 
-
-
+        # Navegar no caminho gerado
         if self.path and len(self.path) > 1:
-            # Próximo ponto no caminho
             next_point = self.path[1]
-            # Obter velocidades necessárias para atingir o próximo ponto
             target_velocity, target_angle_velocity = Navigation.goToPoint(self.robot, next_point)
             self.set_vel(target_velocity)
             self.set_angle_vel(target_angle_velocity)
 
-            # Remover o ponto do caminho se já atingido
+            # Se o próximo ponto for alcançado, removê-lo do caminho
             if np.linalg.norm([current_pos.x - next_point.x, current_pos.y - next_point.y]) < 0.1:
                 self.path.pop(0)
         else:
@@ -78,8 +73,8 @@ class ExampleAgent(BaseAgent):
             self.set_vel(Point(0, 0))
             self.set_angle_vel(0)
 
-
         return
 
     def post_decision(self):
         pass
+
