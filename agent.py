@@ -5,8 +5,6 @@ from rsoccer_gym.Render import SSLRenderField
 import numpy as np
 from utils.Point import Point
 
-    
-
 class ExampleAgent(BaseAgent):
     def __init__(self, id=0, yellow=False):
         super().__init__(id, yellow)

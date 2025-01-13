@@ -64,6 +64,10 @@ class RRT:
                     self.tree[self.goal] = new_point
                     return self.reconstruct_path()
         return None
+    
+    def smooth_path(self, path):
+         smoothed_path = []
+         return smoothed_path
 
     def reconstruct_path(self):
         path = []
