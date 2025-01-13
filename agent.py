@@ -45,6 +45,8 @@ class ExampleAgent(BaseAgent):
             if rob_id != self.id
         ]
 
+        predicted_obstacles = self.predict_obstacle_positions(obstacles)
+
         if self.path is None or len(self.path) == 0 or self.path[-1] != goal:
             rrt = RRT(
                 start=current_pos,
@@ -52,7 +54,7 @@ class ExampleAgent(BaseAgent):
                 obstacles=obstacles,
                 x_bounds=x_bounds,
                 y_bounds=y_bounds,
-                step_size=0.1,
+                step_size=0.15,
                 max_iter=300,
                 min_dist=0.175,
             )
