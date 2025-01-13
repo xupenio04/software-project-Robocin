@@ -79,6 +79,6 @@ class RRT:
         current = self.goal
         while current is not None:
             path.append(current)
-            current = self.tree.get(current)  
+            current = self.tree.get(current)
         path.reverse()
-        return path
+        return self.smooth_path(path)
