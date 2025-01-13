@@ -66,8 +66,13 @@ class RRT:
         return None
     
     def smooth_path(self, path):
-         smoothed_path = []
-         return smoothed_path
+        smoothed_path = [path[0]]
+        for i in range(2, len(path)):
+            if self.is_collision_free(smoothed_path[-1], path[i]):
+                continue  # Pula o ponto intermediário se o caminho direto for possível
+            smoothed_path.append(path[i-1])
+        smoothed_path.append(path[-1])
+        return smoothed_path
 
     def reconstruct_path(self):
         path = []
