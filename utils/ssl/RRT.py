@@ -44,6 +44,8 @@ class RRT:
             return to_point
         theta = np.arctan2(to_point.y - from_point.y, to_point.x - from_point.x)
         return Point(from_point.x + self.step_size * np.cos(theta), from_point.y + self.step_size * np.sin(theta))
+    
+
 
     def plan(self):
         for _ in range(self.max_iter):

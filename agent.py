@@ -12,6 +12,19 @@ class ExampleAgent(BaseAgent):
         super().__init__(id, yellow)
         self.path =[]
 
+    def predict_obstacle_positions(self, obstacles, prediction_time=0.1):
+        """
+        Prever a posição futura dos obstáculos com base em suas velocidades.
+        """
+        predicted_obstacles = []
+        for obs_id, obs in obstacles.items():
+            predicted_pos = Point(
+                obs.x + obs.v_x * prediction_time,  # Usando v_x para velocidade no eixo x
+                obs.y + obs.v_y * prediction_time   # Usando v_y para velocidade no eixo y
+            )
+            predicted_obstacles.append(predicted_pos)
+        return predicted_obstacles
+
     def decision(self):
         if len(self.targets) == 0:
             return
