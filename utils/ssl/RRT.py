@@ -65,12 +65,21 @@ class RRT:
                     return self.reconstruct_path()
         return None
     
-    def smooth_path(self, path):
+    def smooth_path(self, path, interpolation_step=0.01):
         smoothed_path = [path[0]]
-        for i in range(2, len(path)):
+        for i in range(1, len(path)):
             if self.is_collision_free(smoothed_path[-1], path[i]):
-                continue  # Pula o ponto intermediário se o caminho direto for possível
-            smoothed_path.append(path[i-1])
+                # Interpolar pontos entre smoothed_path[-1] e path[i]
+                start = smoothed_path[-1]
+                end = path[i]
+                distance = self.distance(start, end)
+                steps = int(distance / interpolation_step)
+                for j in range(1, steps):
+                    interp_point = Point(
+                        start.x + (end.x - start.x) * j / steps,
+                        start.y + (end.y - start.y) * j / steps
+                    )
+                    smoothed_path.append(interp_point)
         smoothed_path.append(path[-1])
         return smoothed_path
 
@@ -81,4 +90,5 @@ class RRT:
             path.append(current)
             current = self.tree.get(current)
         path.reverse()
-        return self.smooth_path(path)
+        return self.smooth_path(path) 
+

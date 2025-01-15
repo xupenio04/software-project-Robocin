@@ -40,6 +40,8 @@ class ExampleAgent(BaseAgent):
             rob_id: rob for rob_id, rob in self.teammates.items() if rob_id != self.id
         }
 
+        
+
         predicted_obstacles = self.predict_obstacle_positions(obstacles)
 
         # Replanejamento se o caminho não for válido ou não existir
@@ -50,7 +52,7 @@ class ExampleAgent(BaseAgent):
                 obstacles=predicted_obstacles,
                 x_bounds=x_bounds,
                 y_bounds=y_bounds,
-                step_size=0.15,
+                step_size=0.10,
                 max_iter=300,
                 min_dist=0.175,
             )
@@ -74,5 +76,4 @@ class ExampleAgent(BaseAgent):
         return
 
     def post_decision(self):
-        pass
-
+        pass      
