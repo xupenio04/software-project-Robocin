@@ -1,9 +1,13 @@
 import numpy as np
 from utils.Point import Point
 import random
+from scipy.spatial import KDTree
+import argparse
+import textwrap
+from utils.CLI import Difficulty
 
 class RRT:
-    def __init__(self, start, goal, obstacles, x_bounds, y_bounds, step_size=0.1, max_iter=1000, min_dist=0.18):
+    def __init__(self, start, goal, obstacles, x_bounds, y_bounds, step_size=0.1, max_iter=1000, min_dist=0.18, difficulty=1):
         self.start = start
         self.goal = goal
         self.obstacles = obstacles
@@ -12,7 +16,8 @@ class RRT:
         self.step_size = step_size
         self.max_iter = max_iter
         self.min_dist = min_dist
-        self.tree = {start: None}  
+        self.difficulty = difficulty  # Novo parâmetro para controlar a dificuldade
+        self.tree = {start: None}
 
     def distance(self, p1, p2):
         return np.linalg.norm([p1.x - p2.x, p1.y - p2.y])
@@ -47,14 +52,12 @@ class RRT:
     
     def plan(self):
         for _ in range(self.max_iter):
-
             rand_point = Point(
                 random.uniform(self.x_bounds[0], self.x_bounds[1]),
                 random.uniform(self.y_bounds[0], self.y_bounds[1])
             )
 
             nearest_point = self.nearest(rand_point)
-
             new_point = self.steer(nearest_point, rand_point)
 
             if self.is_collision_free(nearest_point, new_point):
@@ -62,10 +65,18 @@ class RRT:
 
                 if self.distance(new_point, self.goal) < self.step_size:
                     self.tree[self.goal] = new_point
-                    return self.reconstruct_path()
+                    raw_path = self.reconstruct_path()
+                    return self.smooth_path(raw_path)  # Suavizar o caminho encontrado
         return None
     
-    def smooth_path(self, path, interpolation_step=0.01):
+    def smooth_path(self, path):
+           
+        if self.difficulty == 1:  
+            return self.smooth_path_with_interpolation(path)
+        else:  
+            return self.smooth_path_with_subdivisions(path)
+        
+    def smooth_path_with_interpolation(self, path, interpolation_step=0.01):
         smoothed_path = [path[0]]
         for i in range(1, len(path)):
             if self.is_collision_free(smoothed_path[-1], path[i]):
@@ -83,6 +94,37 @@ class RRT:
         smoothed_path.append(path[-1])
         return smoothed_path
 
+
+        
+    def smooth_path_with_subdivisions(self, path, subdivision_factor=5):
+      
+        if len(path) < 3:  # Se o caminho for muito curto, não precisa suavizar.
+            return path
+
+        smoothed_path = [path[0]]
+
+        for i in range(2, len(path)):
+            # Verificar o caminho direto entre o último ponto suavizado e o ponto atual.
+            if self.is_collision_free_with_subdivision(smoothed_path[-1], path[i], subdivision_factor):
+                continue  # Pula o ponto intermediário se o caminho direto for possível.
+            smoothed_path.append(path[i - 1])  # Adiciona o ponto intermediário.
+
+        smoothed_path.append(path[-1])  # Adiciona o ponto final.
+        return smoothed_path
+
+    def is_collision_free_with_subdivision(self, p1, p2, subdivisions):
+    
+        for i in range(1, subdivisions + 1):
+            # Gera pontos intermediários ao longo do caminho.
+            t = i / subdivisions
+            intermediate_point = Point(
+                p1.x + t * (p2.x - p1.x),
+                p1.y + t * (p2.y - p1.y)
+            )
+            if not self.is_collision_free(p1, intermediate_point):
+                return False
+        return True
+
     def reconstruct_path(self):
         path = []
         current = self.goal
@@ -90,5 +132,6 @@ class RRT:
             path.append(current)
             current = self.tree.get(current)
         path.reverse()
-        return self.smooth_path(path) 
+        return self.smooth_path(path)
+    
 
