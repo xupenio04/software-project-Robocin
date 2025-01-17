@@ -7,9 +7,10 @@ import numpy as np
 from utils.Point import Point
 
 class ExampleAgent(BaseAgent):
-    def __init__(self, id=0, yellow=False):
+    def __init__(self, id=0, yellow=False, difficulty=1):
         super().__init__(id, yellow)
         self.path = []
+        self.difficulty = difficulty
 
     def predict_obstacle_positions(self, obstacles, prediction_time=0.1):
         """
@@ -25,13 +26,7 @@ class ExampleAgent(BaseAgent):
         return predicted_obstacles
 
     def allocate_tasks(self, robots, targets, obstacles):
-        """
-        Aloca destinos para robôs com base no custo mínimo, garantindo que um robô vá para apenas um destino.
-        :param robots: Dicionário {rob_id: posição (Point) do robô}.
-        :param targets: Lista de destinos (Point).
-        :param obstacles: Lista de obstáculos dinâmicos (não usado diretamente aqui, mas pode ser usado para penalidades futuras).
-        :return: Dicionário {rob_id: destino atribuído}.
-        """
+       
         num_robots = len(robots)
         num_targets = len(targets)
 
@@ -92,6 +87,7 @@ class ExampleAgent(BaseAgent):
                 step_size=0.10,
                 max_iter=250,
                 min_dist=0.175,
+                difficulty=1
             )
             raw_path = rrt.plan()
             if raw_path:
