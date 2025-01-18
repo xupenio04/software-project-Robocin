@@ -5,9 +5,13 @@ from utils.ssl.RRT import RRT
 from rsoccer_gym.Render import SSLRenderField
 import numpy as np
 from utils.Point import Point
+import argparse
+from utils.CLI import cli, Difficulty
+
+args= cli()
 
 class ExampleAgent(BaseAgent):
-    def __init__(self, id=0, yellow=False, difficulty=1):
+    def __init__(self, id=0, yellow=False, difficulty= Difficulty(args.difficulty) ):
         super().__init__(id, yellow)
         self.path = []
         self.difficulty = difficulty
