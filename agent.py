@@ -91,7 +91,7 @@ class ExampleAgent(BaseAgent):
                 step_size=0.10,
                 max_iter=250,
                 min_dist=0.175,
-                difficulty=1
+                difficulty=self.difficulty.value
             )
             raw_path = rrt.plan()
             if raw_path:
