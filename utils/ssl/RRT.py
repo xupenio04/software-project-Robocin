@@ -7,7 +7,7 @@ import textwrap
 from utils.CLI import Difficulty
 
 class RRT:
-    def __init__(self, start, goal, obstacles, x_bounds, y_bounds, step_size=0.10, max_iter=300, min_dist=0.175, difficulty=1):
+    def __init__(self, start, goal, obstacles, x_bounds, y_bounds, step_size=0.1, max_iter=1000, min_dist=0.18, difficulty=1):
         self.start = start
         self.goal = goal
         self.obstacles = obstacles

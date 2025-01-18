@@ -89,7 +89,7 @@ class ExampleAgent(BaseAgent):
                 x_bounds=x_bounds,
                 y_bounds=y_bounds,
                 step_size=0.10,
-                max_iter=250,
+                max_iter=300,
                 min_dist=0.175,
                 difficulty=self.difficulty.value
             )
