@@ -84,13 +84,29 @@ class RRT:
                 return False
         return True
 
+    def random_point_weighted_by_obstacle_density(self):
+        """Gera um ponto aleatório, mas favorecendo áreas com menos obstáculos."""
+        # Define uma área onde queremos evitar obstáculos
+        num_attempts = 100  # Tentativas para encontrar um ponto livre de obstáculos
+        for _ in range(num_attempts):
+            rand_x = random.uniform(self.x_bounds[0], self.x_bounds[1])
+            rand_y = random.uniform(self.y_bounds[0], self.y_bounds[1])
+
+            # Verifica a densidade de obstáculos na região
+            distance_to_nearest_obstacle = min(self.distance(Point(rand_x, rand_y), obs) for obs in self.obstacles)
+
+            # Se a distância para o obstáculo for grande o suficiente, retornamos o ponto
+            if distance_to_nearest_obstacle > self.min_dist:
+                return Point(rand_x, rand_y)
+
+        # Caso não encontremos um ponto seguro, retornamos um ponto aleatório
+        return Point(rand_x, rand_y)
+
     def plan(self):
         """Executa o planejamento RRT para encontrar um caminho do ponto inicial ao destino."""
         for _ in range(self.max_iter):
-            rand_point = Point(
-                random.uniform(self.x_bounds[0], self.x_bounds[1]),
-                random.uniform(self.y_bounds[0], self.y_bounds[1])
-            )
+            # Gera um ponto aleatório com base na densidade de obstáculos
+            rand_point = self.random_point_weighted_by_obstacle_density()
 
             nearest_point = self.nearest(rand_point)
             new_point = self.steer(nearest_point, rand_point)
