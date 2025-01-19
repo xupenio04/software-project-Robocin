@@ -50,6 +50,7 @@ class RRT:
         dist = self.distance(from_point, to_point)
         if dist < self.step_size:
             return to_point
+        self.step_size = self.adjust_step_size(from_point)
         theta = np.arctan2(to_point.y - from_point.y, to_point.x - from_point.x)
         return Point(from_point.x + self.step_size * np.cos(theta), from_point.y + self.step_size * np.sin(theta))
 
@@ -83,6 +84,16 @@ class RRT:
             if not self.is_collision_free(p1, intermediate_point):
                 return False
         return True
+
+    def adjust_step_size(self, point):
+        safe_distance = 0.5
+        min_step = 0.05
+        max_step = 0.2
+        closest_distance = min(self.distance(point, obs) for obs in self.obstacles)
+        if closest_distance > safe_distance:
+            return max_step
+        return min_step + (max_step - min_step) * (closest_distance / safe_distance)
+
 
     def random_point_weighted_by_obstacle_density(self):
         """Gera um ponto aleatório, mas favorecendo áreas com menos obstáculos."""
