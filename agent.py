@@ -8,10 +8,10 @@ from utils.Point import Point
 import argparse
 from utils.CLI import cli, Difficulty
 
-args= cli()
+args = cli()
 
 class ExampleAgent(BaseAgent):
-    def __init__(self, id=0, yellow=False, difficulty= Difficulty(args.difficulty) ):
+    def __init__(self, id=0, yellow=False, difficulty=Difficulty(args.difficulty)):
         super().__init__(id, yellow)
         self.path = []
         self.difficulty = difficulty
@@ -30,7 +30,9 @@ class ExampleAgent(BaseAgent):
         return predicted_obstacles
 
     def allocate_tasks(self, robots, targets, obstacles):
-       
+        """
+        Aloca tarefas (destinos) para os robôs usando o Algoritmo Húngaro.
+        """
         num_robots = len(robots)
         num_targets = len(targets)
 
@@ -43,7 +45,7 @@ class ExampleAgent(BaseAgent):
         for i, (rob_id, rob_pos) in enumerate(robots.items()):
             for j, target in enumerate(targets):
                 dist = np.linalg.norm([rob_pos.x - target.x, rob_pos.y - target.y])
-                cost_matrix[i, j] = dist  # Penalidades podem ser adicionadas aqui
+                cost_matrix[i, j] = dist
 
         # Resolver problema de atribuição (Algoritmo Húngaro)
         row_idx, col_idx = linear_sum_assignment(cost_matrix)
@@ -111,9 +113,6 @@ class ExampleAgent(BaseAgent):
             # Parar se o objetivo for alcançado
             self.set_vel(Point(0, 0))
             self.set_angle_vel(0)
-
-        return
-
 
     def post_decision(self):
         pass
