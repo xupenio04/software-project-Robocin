@@ -116,20 +116,30 @@ class RRT:
     def plan(self):
         """Executa o planejamento RRT para encontrar um caminho do ponto inicial ao destino."""
         for _ in range(self.max_iter):
-            # Gera um ponto aleatório com base na densidade de obstáculos
+            # Ponto randômico ponderado
             rand_point = self.random_point_weighted_by_obstacle_density()
 
+            # Adiciona verificação rápida de proximidade para eficiência
+            if self.distance(rand_point, self.goal) < self.step_size and self.is_collision_free(self.nearest(rand_point), self.goal):
+                self.tree[self.goal] = self.nearest(rand_point)
+                raw_path = self.reconstruct_path()
+                return self.smooth_path(raw_path)
+
+            # Operações normais do RRT
             nearest_point = self.nearest(rand_point)
             new_point = self.steer(nearest_point, rand_point)
 
             if self.is_collision_free(nearest_point, new_point):
                 self.tree[new_point] = nearest_point
 
+                # Verifica se estamos próximos o suficiente do objetivo
                 if self.distance(new_point, self.goal) < self.step_size:
                     self.tree[self.goal] = new_point
                     raw_path = self.reconstruct_path()
                     return self.smooth_path(raw_path)
+
         return None
+
 
     def reconstruct_path(self):
         """Reconstrói o caminho a partir da árvore gerada."""
