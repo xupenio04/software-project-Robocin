@@ -14,22 +14,19 @@ class RRT:
         self.max_iter = max_iter
         self.min_dist = min_dist
         self.difficulty = difficulty
-        self.speed_factor = 1.0  # Fator de velocidade inicial
+        self.speed_factor = 1.0  
         self.tree = {start: None}
 
     def distance(self, p1, p2):
-        """Calcula a distância euclidiana entre dois pontos."""
         return np.linalg.norm([p1.x - p2.x, p1.y - p2.y])
 
     def is_collision_free(self, p1, p2):
-        """Verifica se o caminho entre dois pontos está livre de colisões."""
         for obs in self.obstacles:
             if self.distance_to_segment(obs, p1, p2) < self.min_dist:
                 return False
         return True
 
     def distance_to_segment(self, obs, p1, p2):
-        """Calcula a menor distância entre um obstáculo e um segmento de reta."""
         px, py = obs.x, obs.y
         x1, y1 = p1.x, p1.y
         x2, y2 = p2.x, p2.y
@@ -42,11 +39,9 @@ class RRT:
         return np.linalg.norm([px - proj_x, py - proj_y])
 
     def nearest(self, point):
-        """Encontra o ponto mais próximo na árvore atual."""
         return min(self.tree.keys(), key=lambda p: self.distance(p, point))
 
     def steer(self, from_point, to_point):
-        """Move do ponto inicial na direção do ponto alvo com o tamanho de passo definido."""
         dist = self.distance(from_point, to_point)
         if dist < self.step_size:
             return to_point
@@ -55,10 +50,6 @@ class RRT:
         return Point(from_point.x + self.step_size * np.cos(theta), from_point.y + self.step_size * np.sin(theta))
 
     def adjust_speed_factor(self, point):
-        """
-        Ajusta o fator de velocidade com base na proximidade de obstáculos.
-        Quanto mais próximo dos obstáculos, menor será o fator de velocidade.
-        """
         safe_distance = 0.5  # Distância considerada segura
         min_speed = 0.3      # Velocidade mínima permitida
         max_speed = 1.0      # Velocidade máxima permitida
@@ -73,14 +64,13 @@ class RRT:
             self.speed_factor = min_speed + (max_speed - min_speed) * (closest_distance / safe_distance)
 
     def is_collision_free_with_subdivision(self, p1, p2, subdivisions):
-        """Verifica colisões subdividindo o caminho entre dois pontos."""
         for i in range(1, subdivisions + 1):
             t = i / subdivisions
             intermediate_point = Point(
                 p1.x + t * (p2.x - p1.x),
                 p1.y + t * (p2.y - p1.y)
             )
-            self.adjust_speed_factor(intermediate_point)  # Ajusta a velocidade dinamicamente
+            self.adjust_speed_factor(intermediate_point) 
             if not self.is_collision_free(p1, intermediate_point):
                 return False
         return True
@@ -96,43 +86,33 @@ class RRT:
 
 
     def random_point_weighted_by_obstacle_density(self):
-        """Gera um ponto aleatório, mas favorecendo áreas com menos obstáculos."""
-        # Define uma área onde queremos evitar obstáculos
-        num_attempts = 100  # Tentativas para encontrar um ponto livre de obstáculos
+        num_attempts = 150  # Tentativas para encontrar um ponto livre de obstáculos
         for _ in range(num_attempts):
             rand_x = random.uniform(self.x_bounds[0], self.x_bounds[1])
             rand_y = random.uniform(self.y_bounds[0], self.y_bounds[1])
 
-            # Verifica a densidade de obstáculos na região
             distance_to_nearest_obstacle = min(self.distance(Point(rand_x, rand_y), obs) for obs in self.obstacles)
 
-            # Se a distância para o obstáculo for grande o suficiente, retornamos o ponto
             if distance_to_nearest_obstacle > self.min_dist:
                 return Point(rand_x, rand_y)
 
-        # Caso não encontremos um ponto seguro, retornamos um ponto aleatório
         return Point(rand_x, rand_y)
 
     def plan(self):
-        """Executa o planejamento RRT para encontrar um caminho do ponto inicial ao destino."""
         for _ in range(self.max_iter):
-            # Ponto randômico ponderado
             rand_point = self.random_point_weighted_by_obstacle_density()
 
-            # Adiciona verificação rápida de proximidade para eficiência
             if self.distance(rand_point, self.goal) < self.step_size and self.is_collision_free(self.nearest(rand_point), self.goal):
                 self.tree[self.goal] = self.nearest(rand_point)
                 raw_path = self.reconstruct_path()
                 return self.smooth_path(raw_path)
 
-            # Operações normais do RRT
             nearest_point = self.nearest(rand_point)
             new_point = self.steer(nearest_point, rand_point)
 
             if self.is_collision_free(nearest_point, new_point):
                 self.tree[new_point] = nearest_point
 
-                # Verifica se estamos próximos o suficiente do objetivo
                 if self.distance(new_point, self.goal) < self.step_size:
                     self.tree[self.goal] = new_point
                     raw_path = self.reconstruct_path()
@@ -142,7 +122,6 @@ class RRT:
 
 
     def reconstruct_path(self):
-        """Reconstrói o caminho a partir da árvore gerada."""
         path = []
         current = self.goal
         while current is not None:
@@ -152,16 +131,12 @@ class RRT:
         return path
 
     def smooth_path(self, path):
-        """
-        Suaviza o caminho com base no nível de dificuldade.
-        """
-        if self.difficulty == 1:  # Caminho mais suave
+        if self.difficulty == 1:  
             return self.smooth_path_with_interpolation(path)
-        else:  # Caminho subdividido para maior precisão
-            return self.smooth_path_with_subdivisions(path)
+        else:
+            return self.smooth_path_based_on_density(path)
 
     def smooth_path_with_interpolation(self, path, interpolation_step=0.01):
-        """Suaviza o caminho interpolando entre pontos."""
         smoothed_path = [path[0]]
         for i in range(1, len(path)):
             if self.is_collision_free(smoothed_path[-1], path[i]):
@@ -178,17 +153,92 @@ class RRT:
         smoothed_path.append(path[-1])
         return smoothed_path
 
-    def smooth_path_with_subdivisions(self, path, base_subdivision_factor=20):
-        """Suaviza o caminho adaptando o fator de subdivisão com base na proximidade dos obstáculos."""
+
+    def smooth_path_with_subdivisions_simple(self, path, subdivision_factor=5, avoidance_radius=0.2):
+        if len(path) < 5:
+            return path
+
+        smoothed_path = [path[0]]
+        for i in range(1, len(path)):
+            current_point = path[i]
+
+            density = self.obstacle_density(current_point, avoidance_radius)
+
+            if density > 0:
+                alternative_point = self.find_alternative_point(current_point, radius=avoidance_radius)
+                if alternative_point:
+                    current_point = alternative_point
+
+            if self.is_collision_free_with_subdivision(smoothed_path[-1], current_point, subdivision_factor):
+                smoothed_path.append(current_point)
+            else:
+                smoothed_path.append(path[i - 1])
+
+        smoothed_path.append(path[-1])
+        return smoothed_path
+    
+    def obstacle_density(self, point, radius=0.5):
+        count = 0
+        for obs in self.obstacles:
+            if self.distance(point, obs) < radius:
+                count += 1
+        return count
+    
+    def find_alternative_point(self, point, radius=0.2, step_size=0.05, max_attempts=5):
+        best_point = None
+        best_distance = float('inf')
+
+        attempts = 0
+        while attempts < max_attempts:
+            angle = np.random.uniform(0, 2 * np.pi)
+            new_x = point.x + step_size * np.cos(angle)
+            new_y = point.y + step_size * np.sin(angle)
+
+            if self.x_bounds[0] <= new_x <= self.x_bounds[1] and self.y_bounds[0] <= new_y <= self.y_bounds[1]:
+                alternative_point = Point(new_x, new_y)
+
+                if self.is_collision_free_with_subdivision(point, alternative_point, 1):
+                    distance_to_goal = self.distance(alternative_point, point)
+                    if distance_to_goal < best_distance:
+                        best_distance = distance_to_goal
+                        best_point = alternative_point
+
+            attempts += 1
+
+        return best_point
+     
+    def smooth_path_based_on_density(self, path, subdivision_factor=5, avoidance_radius=0.2):
+        if len(path) < 5:
+            return path
+
+        high_density = self.check_path_density(path, avoidance_radius)
+
+        if high_density:
+            return self.smooth_path_with_subdivisions_simple(path, subdivision_factor, avoidance_radius)
+        else:
+            return self.smooth_path_with_subdivisions(path, subdivision_factor)
+
+    def check_path_density(self, path, avoidance_radius=0.2):
+        high_density_count = 0
+        for point in path:
+            if self.obstacle_density(point, avoidance_radius) > 0:
+                high_density_count += 1
+
+        density_threshold = 0.5
+        if high_density_count / len(path) > density_threshold:
+            return True
+        return False
+
+    def smooth_path_with_subdivisions(self, path, subdivision_factor=5): 
         if len(path) < 5:
             return path
 
         smoothed_path = [path[0]]
         for i in range(2, len(path)):
-            nearest_obs_distance = min(self.distance(path[i], obs) for obs in self.obstacles)
-            dynamic_factor = base_subdivision_factor + int(10 / (nearest_obs_distance + 0.1))  # Ajusta dinamicamente
-            if self.is_collision_free_with_subdivision(smoothed_path[-1], path[i], dynamic_factor):
+            if self.is_collision_free_with_subdivision(smoothed_path[-1], path[i], subdivision_factor):
                 continue
             smoothed_path.append(path[i - 1])
         smoothed_path.append(path[-1])
         return smoothed_path
+
+   
