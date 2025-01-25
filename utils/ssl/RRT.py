@@ -178,14 +178,16 @@ class RRT:
         smoothed_path.append(path[-1])
         return smoothed_path
 
-    def smooth_path_with_subdivisions(self, path, subdivision_factor=5):
-        """Suaviza o caminho usando subdivisões para verificar colisões."""
-        if len(path) < 3:
+    def smooth_path_with_subdivisions(self, path, base_subdivision_factor=20):
+        """Suaviza o caminho adaptando o fator de subdivisão com base na proximidade dos obstáculos."""
+        if len(path) < 5:
             return path
 
         smoothed_path = [path[0]]
         for i in range(2, len(path)):
-            if self.is_collision_free_with_subdivision(smoothed_path[-1], path[i], subdivision_factor):
+            nearest_obs_distance = min(self.distance(path[i], obs) for obs in self.obstacles)
+            dynamic_factor = base_subdivision_factor + int(10 / (nearest_obs_distance + 0.1))  # Ajusta dinamicamente
+            if self.is_collision_free_with_subdivision(smoothed_path[-1], path[i], dynamic_factor):
                 continue
             smoothed_path.append(path[i - 1])
         smoothed_path.append(path[-1])
