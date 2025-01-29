@@ -11,10 +11,11 @@ from utils.CLI import cli, Difficulty
 args = cli()
 
 class ExampleAgent(BaseAgent):
-    def __init__(self, id=0, yellow=False, difficulty=Difficulty(args.difficulty)):
+    def __init__(self, id=0, yellow=False, difficulty=Difficulty(args.difficulty), allocation_method="hungarian"):
         super().__init__(id, yellow)
         self.path = []
         self.difficulty = difficulty
+        self.allocation_method = allocation_method  # Definir o método de alocação
 
     def predict_obstacle_positions(self, obstacles, prediction_time=0.1):
         """
@@ -29,31 +30,27 @@ class ExampleAgent(BaseAgent):
             predicted_obstacles.append(predicted_pos)
         return predicted_obstacles
 
-    def allocate_tasks(self, robots, targets, obstacles):
-        """
-        Aloca tarefas (destinos) para os robôs usando o Algoritmo Húngaro.
-        """
-        num_robots = len(robots)
-        num_targets = len(targets)
+    def greedy_allocation(self, robots, targets):
+       
+        allocation = {}
+        remaining_targets = targets.copy()
 
-        # Garantir que o número de robôs e destinos seja compatível
-        if num_robots == 0 or num_targets == 0:
-            return {}
-
-        # Matriz de custos baseada na distância entre robôs e destinos
-        cost_matrix = np.zeros((num_robots, num_targets))
-        for i, (rob_id, rob_pos) in enumerate(robots.items()):
-            for j, target in enumerate(targets):
-                dist = np.linalg.norm([rob_pos.x - target.x, rob_pos.y - target.y])
-                cost_matrix[i, j] = dist
-
-        # Resolver problema de atribuição (Algoritmo Húngaro)
-        row_idx, col_idx = linear_sum_assignment(cost_matrix)
-
-        # Criar mapeamento de robôs para destinos
-        allocation = {list(robots.keys())[i]: targets[j] for i, j in zip(row_idx, col_idx)}
+        for rob_id, rob_pos in robots.items():
+            if not remaining_targets:
+                break
+            # Escolher o alvo mais próximo
+            target = min(remaining_targets, key=lambda t: np.linalg.norm([rob_pos.x - t.x, rob_pos.y - t.y]))
+            allocation[rob_id] = target
+            remaining_targets.remove(target)
 
         return allocation
+
+    
+    def allocate_tasks(self, robots, targets, obstacles):
+        """
+        Aloca destinos para os robôs usando o método especificado.
+        """
+        return self.greedy_allocation(robots, targets)
 
     def decision(self):
         if len(self.targets) == 0:
@@ -68,7 +65,7 @@ class ExampleAgent(BaseAgent):
             rob_id: rob for rob_id, rob in self.teammates.items() if rob_id != self.id
         }
 
-        # Alocar destinos para robôs
+        # Alocar destinos para robôs usando o método definido (Húngaro ou Greedy)
         allocation = self.allocate_tasks(robots, targets, obstacles)
 
         # Verificar se este robô tem um destino atribuído
