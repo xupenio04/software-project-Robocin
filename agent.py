@@ -28,20 +28,35 @@ class ExampleAgent(BaseAgent):
             predicted_obstacles.append(predicted_pos)
         return predicted_obstacles
 
-    def greedy_allocation(self, robots, targets):
-       
-        allocation = {}
-        remaining_targets = targets.copy()
 
-        for rob_id, rob_pos in robots.items():
-            if not remaining_targets:
-                break
-           
-            target = min(remaining_targets, key=lambda t: np.linalg.norm([rob_pos.x - t.x, rob_pos.y - t.y]))
-            allocation[rob_id] = target
-            remaining_targets.remove(target)
+
+    def greedy_allocation(self, robots, targets):
+        if not robots or not targets:
+            return {}
+
+        allocation = {}
+        remaining_targets = set(targets)  
+        robot_list = list(robots.items())  
+
+        while robot_list and remaining_targets:
+            best_match = None
+            min_distance = float('inf')
+
+            for rob_id, rob_pos in robot_list:
+                for target in remaining_targets:
+                    distance = np.linalg.norm([rob_pos.x - target.x, rob_pos.y - target.y])
+                    if distance < min_distance:
+                        min_distance = distance
+                        best_match = (rob_id, target)
+
+            if best_match:
+                rob_id, target = best_match
+                allocation[rob_id] = target
+                remaining_targets.remove(target)
+                robot_list.remove((rob_id, robots[rob_id]))
 
         return allocation
+
 
     
     def allocate_tasks(self, robots, targets, obstacles):
