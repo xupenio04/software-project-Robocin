@@ -50,9 +50,9 @@ class RRT:
         return Point(from_point.x + self.step_size * np.cos(theta), from_point.y + self.step_size * np.sin(theta))
 
     def adjust_speed_factor(self, point):
-        safe_distance = 0.5  # Distância considerada segura
-        min_speed = 0.3      # Velocidade mínima permitida
-        max_speed = 1.0      # Velocidade máxima permitida
+        safe_distance = 0.5  
+        min_speed = 0.3      
+        max_speed = 1.0     
 
         closest_distance = min(
             self.distance(point, obs) for obs in self.obstacles
@@ -86,7 +86,7 @@ class RRT:
 
 
     def random_point_weighted_by_obstacle_density(self):
-        num_attempts = 150  # Tentativas para encontrar um ponto livre de obstáculos
+        num_attempts = 150  
         for _ in range(num_attempts):
             rand_x = random.uniform(self.x_bounds[0], self.x_bounds[1])
             rand_y = random.uniform(self.y_bounds[0], self.y_bounds[1])

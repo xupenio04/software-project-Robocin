@@ -11,55 +11,62 @@ from utils.CLI import cli, Difficulty
 args = cli()
 
 class ExampleAgent(BaseAgent):
-    def __init__(self, id=0, yellow=False, difficulty=Difficulty(args.difficulty)):
+    def __init__(self, id=0, yellow=False, difficulty=Difficulty(args.difficulty), allocation_method="hungarian"):
         super().__init__(id, yellow)
         self.path = []
         self.difficulty = difficulty
+        self.allocation_method = allocation_method  
 
     def predict_obstacle_positions(self, obstacles, prediction_time=0.1):
-        """
-        Prever a posição futura dos obstáculos com base em suas velocidades.
-        """
+      
         predicted_obstacles = []
         for obs_id, obs in obstacles.items():
             predicted_pos = Point(
-                obs.x + obs.v_x * prediction_time,  # Usando v_x para velocidade no eixo x
-                obs.y + obs.v_y * prediction_time   # Usando v_y para velocidade no eixo y
+                obs.x + obs.v_x * prediction_time,  
+                obs.y + obs.v_y * prediction_time   
             )
             predicted_obstacles.append(predicted_pos)
         return predicted_obstacles
 
-    def allocate_tasks(self, robots, targets, obstacles):
-        """
-        Aloca tarefas (destinos) para os robôs usando o Algoritmo Húngaro.
-        """
-        num_robots = len(robots)
-        num_targets = len(targets)
 
-        # Garantir que o número de robôs e destinos seja compatível
-        if num_robots == 0 or num_targets == 0:
+
+    def greedy_allocation(self, robots, targets):
+        if not robots or not targets:
             return {}
 
-        # Matriz de custos baseada na distância entre robôs e destinos
-        cost_matrix = np.zeros((num_robots, num_targets))
-        for i, (rob_id, rob_pos) in enumerate(robots.items()):
-            for j, target in enumerate(targets):
-                dist = np.linalg.norm([rob_pos.x - target.x, rob_pos.y - target.y])
-                cost_matrix[i, j] = dist
+        allocation = {}
+        remaining_targets = set(targets)  
+        robot_list = list(robots.items())  
 
-        # Resolver problema de atribuição (Algoritmo Húngaro)
-        row_idx, col_idx = linear_sum_assignment(cost_matrix)
+        while robot_list and remaining_targets:
+            best_match = None
+            min_distance = float('inf')
 
-        # Criar mapeamento de robôs para destinos
-        allocation = {list(robots.keys())[i]: targets[j] for i, j in zip(row_idx, col_idx)}
+            for rob_id, rob_pos in robot_list:
+                for target in remaining_targets:
+                    distance = np.linalg.norm([rob_pos.x - target.x, rob_pos.y - target.y])
+                    if distance < min_distance:
+                        min_distance = distance
+                        best_match = (rob_id, target)
+
+            if best_match:
+                rob_id, target = best_match
+                allocation[rob_id] = target
+                remaining_targets.remove(target)
+                robot_list.remove((rob_id, robots[rob_id]))
 
         return allocation
+
+
+    
+    def allocate_tasks(self, robots, targets, obstacles):
+        
+        return self.greedy_allocation(robots, targets)
 
     def decision(self):
         if len(self.targets) == 0:
             return
 
-        # Obter posições atuais dos robôs e destinos
         robots = {rob_id: rob for rob_id, rob in self.teammates.items()}
         targets = self.targets  # Lista de destinos
         obstacles = {
@@ -68,22 +75,18 @@ class ExampleAgent(BaseAgent):
             rob_id: rob for rob_id, rob in self.teammates.items() if rob_id != self.id
         }
 
-        # Alocar destinos para robôs
         allocation = self.allocate_tasks(robots, targets, obstacles)
 
-        # Verificar se este robô tem um destino atribuído
         if self.id not in allocation:
             self.set_vel(Point(0, 0))
             self.set_angle_vel(0)
             return
 
-        # Planejar caminho para o destino atribuído
         goal = allocation[self.id]
         if not self.path or len(self.path) == 0 or self.path[-1] != goal:
             x_bounds = (-SSLRenderField.length / 2, SSLRenderField.length / 2)
             y_bounds = (-SSLRenderField.width / 2, SSLRenderField.width / 2)
 
-            # Utilizar o novo RRT com suavização
             rrt = RRT(
                 start=self.pos,
                 goal=goal,
@@ -97,20 +100,17 @@ class ExampleAgent(BaseAgent):
             )
             raw_path = rrt.plan()
             if raw_path:
-                self.path = raw_path  # Caminho suavizado
+                self.path = raw_path 
 
-        # Navegar no caminho planejado
         if self.path and len(self.path) > 1:
             next_point = self.path[1]
             target_velocity, target_angle_velocity = Navigation.goToPoint(self.robot, next_point)
             self.set_vel(target_velocity)
             self.set_angle_vel(target_angle_velocity)
 
-            # Remover ponto alcançado do caminho
             if np.linalg.norm([self.pos.x - next_point.x, self.pos.y - next_point.y]) < 0.1:
                 self.path.pop(0)
         else:
-            # Parar se o objetivo for alcançado
             self.set_vel(Point(0, 0))
             self.set_angle_vel(0)
 
